@@ -86,16 +86,6 @@ class logstore_usage_privacy_testcase extends provider_testcase {
         $e->trigger();
         $this->assert_contextlist_equals($this->get_contextlist_for_user($u2), [$cm2ctx]);
 
-        // Admin user is the real user.
-        $this->assert_contextlist_equals($this->get_contextlist_for_user($admin), []);
-        $this->assert_contextlist_equals($this->get_contextlist_for_user($u3), []);
-        $this->setAdminUser();
-        \core\session\manager::loginas($u3->id, $sysctx);
-        $e = \logstore_usage\event\unittest_executed::create(['context' => $c1ctx]);
-        $e->trigger();
-        $this->assert_contextlist_equals($this->get_contextlist_for_user($admin), [$sysctx, $c1ctx]);
-        $this->assert_contextlist_equals($this->get_contextlist_for_user($u3), [$sysctx, $c1ctx]);
-
         // By admin user masquerading u1 related to u3.
         $this->assert_contextlist_equals($this->get_contextlist_for_user($u1), [$cm1ctx]);
         $this->assert_contextlist_equals($this->get_contextlist_for_user($u3), [$sysctx, $c1ctx]);

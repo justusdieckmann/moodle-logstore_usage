@@ -53,15 +53,13 @@ class provider implements
      */
     public static function get_metadata(collection $collection) : collection {
         $collection->add_database_table('logstore_usage_log', [
-            'eventname' => 'privacy:metadata:log:eventname',
+            'contextid' => 'privacy:metadata:log:contextid',
             'userid' => 'privacy:metadata:log:userid',
-            'relateduserid' => 'privacy:metadata:log:relateduserid',
-            'anonymous' => 'privacy:metadata:log:anonymous',
-            'other' => 'privacy:metadata:log:other',
-            'timecreated' => 'privacy:metadata:log:timecreated',
-            'origin' => 'privacy:metadata:log:origin',
-            'ip' => 'privacy:metadata:log:ip',
-            'realuserid' => 'privacy:metadata:log:realuserid',
+                'courseid' => 'privacy:metadata:log:courseid',
+            'amount' => 'privacy:metadata:log:amount',
+            'daycreated' => 'privacy:metadata:log:daycreated',
+            'monthcreated' => 'privacy:metadata:log:monthcreated',
+            'yearcreated' => 'privacy:metadata:log:yearcreated',
         ], 'privacy:metadata:log');
         return $collection;
     }
@@ -77,13 +75,9 @@ class provider implements
         $sql = "
             SELECT l.contextid
               FROM {logstore_usage_log} l
-             WHERE l.userid = :userid1
-                OR l.relateduserid = :userid2
-                OR l.realuserid = :userid3";
+             WHERE l.userid = :userid1";
         $contextlist->add_from_sql($sql, [
             'userid1' => $userid,
-            'userid2' => $userid,
-            'userid3' => $userid,
         ]);
     }
 
@@ -95,12 +89,10 @@ class provider implements
      */
     public static function add_userids_for_context(\core_privacy\local\request\userlist $userlist) {
         $params = ['contextid' => $userlist->get_context()->id];
-        $sql = "SELECT userid, relateduserid, realuserid
+        $sql = "SELECT userid
                   FROM {logstore_usage_log}
                  WHERE contextid = :contextid";
         $userlist->add_from_sql('userid', $sql, $params);
-        $userlist->add_from_sql('relateduserid', $sql, $params);
-        $userlist->add_from_sql('realuserid', $sql, $params);
     }
 
     /**

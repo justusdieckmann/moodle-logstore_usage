@@ -24,16 +24,14 @@
 
 $string['buffersize'] = 'Write buffer size';
 $string['pluginname'] = 'Usage log';
-$string['pluginname_desc'] = 'A log plugin stores log entries in a Moodle database table.';
+$string['pluginname_desc'] = 'A log plugin stores log entries of enabled courses in a Moodle database table.';
 $string['privacy:metadata:log'] = 'A collection of past events';
-$string['privacy:metadata:log:anonymous'] = 'Whether the event was flagged as anonymous';
-$string['privacy:metadata:log:eventname'] = 'The event name';
-$string['privacy:metadata:log:ip'] = 'The IP address used at the time of the event';
-$string['privacy:metadata:log:origin'] = 'The origin of the event';
-$string['privacy:metadata:log:other'] = 'Additional information about the event';
-$string['privacy:metadata:log:realuserid'] = 'The ID of the real user behind the event, when masquerading a user.';
-$string['privacy:metadata:log:relateduserid'] = 'The ID of a user related to this event';
-$string['privacy:metadata:log:timecreated'] = 'The time when the event occurred';
+$string['privacy:metadata:log:contextid'] = 'The ID of the context of the related activity';
+$string['privacy:metadata:log:courseid'] = 'The IP of the course the activity was viewed in';
+$string['privacy:metadata:log:amount'] = 'How often the activity was viewed by the user at that day';
+$string['privacy:metadata:log:daycreated'] = 'What day of month the activity was viewed on';
+$string['privacy:metadata:log:monthcreated'] = 'What month the activity was viewed in';
+$string['privacy:metadata:log:yearcreated'] = 'What year of month the activity was viewed in';
 $string['privacy:metadata:log:userid'] = 'The ID of the user who triggered this event';
 $string['taskcleanup'] = 'Log table cleanup';
 $string['enabledcourses'] = 'Enabled courses';
