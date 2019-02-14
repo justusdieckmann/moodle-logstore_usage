@@ -24,19 +24,19 @@
 
 namespace logstore_usage\log;
 
+use Box\Spout\Common\Exception\EncodingConversionException;
+
 defined('MOODLE_INTERNAL') || die();
 
-class store implements \tool_log\log\writer
-{
+class store implements \tool_log\log\writer {
     use \tool_log\helper\store,
-        \tool_log\helper\buffered_writer,
-        \tool_log\helper\reader;
+            \tool_log\helper\buffered_writer,
+            \tool_log\helper\reader;
 
     /** @var string $logguests true if logging guest access */
     protected $logguests;
 
-    public function __construct(\tool_log\log\manager $manager)
-    {
+    public function __construct(\tool_log\log\manager $manager) {
         $this->helper_setup($manager);
         // Log everything before setting is saved for the first time.
         $this->logguests = $this->get_config('logguests', 1);
@@ -48,8 +48,7 @@ class store implements \tool_log\log\writer
      * @param \core\event\base $event
      * @return bool
      */
-    protected function is_event_ignored(\core\event\base $event)
-    {
+    protected function is_event_ignored(\core\event\base $event) {
         if ((!CLI_SCRIPT or PHPUNIT_TEST) and !$this->logguests) {
             // Always log inside CLI scripts because we do not login there.
             if (!isloggedin() or isguestuser()) {
@@ -71,8 +70,7 @@ class store implements \tool_log\log\writer
 
     }
 
-    protected function should_listen_for_event($eventname)
-    {
+    protected function should_listen_for_event($eventname) {
         if (preg_match('/\\\\event\\\\course_module_viewed$/', $eventname)) {
             return true;
         }
@@ -80,9 +78,9 @@ class store implements \tool_log\log\writer
         return false;
     }
 
-    protected function is_course_activated($courseid)
-    {
-        return true;//TODO
+    protected function is_course_activated($courseid) {
+        $courses = explode(',', $this->get_config('courses'));
+        return in_array($courseid, $courses);
     }
 
     /**
@@ -90,50 +88,57 @@ class store implements \tool_log\log\writer
      *
      * @param array $evententries raw event data
      */
-    protected function insert_event_entries($evententries)
-    {
+    protected function insert_event_entries($evententries) {
         global $DB;
 
         foreach ($evententries as $k => $v) {
             $dt = new \DateTime("now", \core_date::get_server_timezone_object());
-            $dt->setTimestamp($v['timecreated']);
-            $dt->setTime(0, 0, 0, 0);
+            $day = $dt->format('j');
+            $month = $dt->format('n');
+            $year = $dt->format('Y');
 
             $conditions = array(
-                'datecreated' => $dt->getTimestamp(),
-                'userid' => $v['userid'],
-                'contextid' => $v['contextid']
+                    'daycreated' => $day,
+                    'monthcreated' => $month,
+                    'yearcreated' => $year,
+                    'userid' => $v['userid'],
+                    'contextid' => $v['contextid']
             );
 
-            if ($DB->record_exists("logstore_usage_log", $conditions)) {
+            $transaction = $DB->start_delegated_transaction();
+            try {
+                if ($DB->record_exists("logstore_usage_log", $conditions)) {
+                    $sql = "UPDATE {logstore_usage_log}
+                           SET amount = amount + 1
+                         WHERE daycreated = ?
+                           AND monthcreated = ?
+                           AND yearcreated = ?
+                           AND userid = ?
+                           AND contextid = ?";
 
-                $sql = "UPDATE {logstore_usage_log}
-                       SET amount = amount + 1
-                     WHERE datecreated = ?
-                       AND userid = ?
-                       AND contextid = ?";
-
-                $DB->execute($sql, array($dt->getTimestamp(), $v['userid'], $v['contextid']));
-            } else {
-                $obj = array(
-                    'objecttable' => $v['objecttable'],
-                    'objectid' => $v['objectid'],
-                    'contextid' => $v['contextid'],
-                    'userid' => $v['userid'],
-                    'courseid' => $v['courseid'],
-                    'datecreated' => $dt->getTimestamp(),
-                    'amount' => 1
-                );
-                $DB->insert_record("logstore_usage_log", $obj);
+                    $DB->execute($sql, array($day, $month, $year, $v['userid'], $v['contextid']));
+                } else {
+                    $obj = array(
+                            'objecttable' => $v['objecttable'],
+                            'objectid' => $v['objectid'],
+                            'contextid' => $v['contextid'],
+                            'userid' => $v['userid'],
+                            'courseid' => $v['courseid'],
+                            'daycreated' => $day,
+                            'monthcreated' => $month,
+                            'yearcreated' => $year,
+                            'amount' => 1
+                    );
+                    $DB->insert_record("logstore_usage_log", $obj);
+                }
+                $transaction->allow_commit();
+            } catch (\Exception $e) {
+                $transaction->rollback($e);
             }
         }
-
-
-        //$DB->insert_records('logstore_usage_log', $evententries);
     }
 
-    public function get_events_select($selectwhere, array $params, $sort, $limitfrom, $limitnum)
-    {
+    public function get_events_select($selectwhere, array $params, $sort, $limitfrom, $limitnum) {
         global $DB;
 
         $sort = self::tweak_sort_by_id($sort);
@@ -166,8 +171,7 @@ class store implements \tool_log\log\writer
      * @param int $limitnum
      * @return \core\dml\recordset_walk|\core\event\base[]
      */
-    public function get_events_select_iterator($selectwhere, array $params, $sort, $limitfrom, $limitnum)
-    {
+    public function get_events_select_iterator($selectwhere, array $params, $sort, $limitfrom, $limitnum) {
         global $DB;
 
         $sort = self::tweak_sort_by_id($sort);
@@ -183,11 +187,10 @@ class store implements \tool_log\log\writer
      * @param stdClass $data Log data
      * @return \core\event\base
      */
-    public function get_log_event($data)
-    {
+    public function get_log_event($data) {
 
         $extra = array('origin' => $data->origin, 'ip' => $data->ip, 'realuserid' => $data->realuserid);
-        $data = (array)$data;
+        $data = (array) $data;
         $id = $data['id'];
         $data['other'] = unserialize($data['other']);
         if ($data['other'] === false) {
@@ -205,14 +208,12 @@ class store implements \tool_log\log\writer
         return $event;
     }
 
-    public function get_events_select_count($selectwhere, array $params)
-    {
+    public function get_events_select_count($selectwhere, array $params) {
         global $DB;
         return $DB->count_records_select('logstore_usage_log', $selectwhere, $params);
     }
 
-    public function get_internal_log_table_name()
-    {
+    public function get_internal_log_table_name() {
         return 'logstore_usage_log';
     }
 
@@ -221,8 +222,7 @@ class store implements \tool_log\log\writer
      *
      * @return bool true means new log events are being added, false means no new data will be added
      */
-    public function is_logging()
-    {
+    public function is_logging() {
         // Only enabled stpres are queried,
         // this means we can return true here unless store has some extra switch.
         return true;

@@ -36,3 +36,5 @@ $string['privacy:metadata:log:relateduserid'] = 'The ID of a user related to thi
 $string['privacy:metadata:log:timecreated'] = 'The time when the event occurred';
 $string['privacy:metadata:log:userid'] = 'The ID of the user who triggered this event';
 $string['taskcleanup'] = 'Log table cleanup';
+$string['enabledcourses'] = 'Enabled courses';
+$string['enabledcourses_desc'] = 'List of enabled course-ids, seperated by comma';
