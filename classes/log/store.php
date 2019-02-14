@@ -95,27 +95,37 @@ class store implements \tool_log\log\writer
         global $DB;
 
         foreach ($evententries as $k => $v) {
-            $dt = new \DateTime();
+            $dt = new \DateTime("now", \core_date::get_server_timezone_object());
             $dt->setTimestamp($v['timecreated']);
             $dt->setTime(0, 0, 0, 0);
 
-            $sql = "INSERT INTO {logstore_usage_log} 
-                                (objecttable, objectid, contextid, userid, courseid, datecreated, amount) 
-                         VALUES (:objtable, :objid, :contextid, :userid, :courseid, :datecreated , 1) 
-                    ON DUPLICATE KEY 
-                         UPDATE amount = amount + 1";
-
-            $params = array(
-                ':objtable' => $v['objecttable'],
-                ':objid' => $v['objectid'],
-                ':contextid' => $v['contextid'],
-                ':userid' => $v['userid'],
-                ':courseid' => $v['courseid'],
-                ':datecreated' => $dt->getTimestamp()
+            $conditions = array(
+                'datecreated' => $dt->getTimestamp(),
+                'userid' => $v['userid'],
+                'contextid' => $v['contextid']
             );
 
-            $DB->execute($sql, $params);
-            var_dump($DB->get_last_error());
+            if ($DB->record_exists("logstore_usage_log", $conditions)) {
+
+                $sql = "UPDATE {logstore_usage_log}
+                       SET amount = amount + 1
+                     WHERE datecreated = ?
+                       AND userid = ?
+                       AND contextid = ?";
+
+                $DB->execute($sql, array($dt->getTimestamp(), $v['userid'], $v['contextid']));
+            } else {
+                $obj = array(
+                    'objecttable' => $v['objecttable'],
+                    'objectid' => $v['objectid'],
+                    'contextid' => $v['contextid'],
+                    'userid' => $v['userid'],
+                    'courseid' => $v['courseid'],
+                    'datecreated' => $dt->getTimestamp(),
+                    'amount' => 1
+                );
+                $DB->insert_record("logstore_usage_log", $obj);
+            }
         }
 
 

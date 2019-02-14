@@ -18,7 +18,7 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id"/>
-        <KEY NAME="datecreated" TYPE="unique" FIELDS="datecreated"/>
+        <KEY NAME="datecreated" TYPE="unique" FIELDS="datecreated, userid, contextid"/>
       </KEYS>
     </TABLE>
   </TABLES>
