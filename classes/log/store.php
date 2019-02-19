@@ -71,7 +71,7 @@ class store implements \tool_log\log\writer {
             return true;
         }
 
-        if(PHPUNIT_TEST && $eventname == '\logstore_usage\event\unittest_view') {
+        if (PHPUNIT_TEST && $eventname == '\logstore_usage\event\unittest_view') {
             return true;
         }
 
@@ -92,7 +92,7 @@ class store implements \tool_log\log\writer {
         global $DB;
 
         foreach ($evententries as $k => $v) {
-            //realuserid is not present in is_event_ignored
+            // Realuserid is not present in is_event_ignored.
             if (isset($v['realuserid']) && $v['realuserid'] !== '') {
                 continue;
             }

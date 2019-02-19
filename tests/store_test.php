@@ -65,16 +65,16 @@ class logstore_usage_store_testcase extends advanced_testcase {
 
         $this->setUser(0);
 
-        $event_params = array(
+        $eventparams = array(
                 'context' => context_module::instance($module1->cmid),
                 'objectid' => $module1->id
         );
-        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e = \mod_resource\event\course_module_viewed::create($eventparams);
         $e->trigger();
         $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
 
         $this->setUser($user1);
-        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e = \mod_resource\event\course_module_viewed::create($eventparams);
         $e->trigger();
         $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
         $this->assertCount(1, $logs);
@@ -95,7 +95,7 @@ class logstore_usage_store_testcase extends advanced_testcase {
         $this->assertEquals($expected, (array) $log1);
 
         $this->setUser($user1);
-        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e = \mod_resource\event\course_module_viewed::create($eventparams);
         $e->trigger();
         $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
         $this->assertCount(1, $logs);
@@ -104,20 +104,18 @@ class logstore_usage_store_testcase extends advanced_testcase {
         $expected['amount'] = '2';
         $this->assertEquals($expected, (array) $log1);
 
-        $event_params2 = array(
+        $eventparams2 = array(
                 'context' => context_module::instance($module2->cmid),
                 'objectid' => $module2->id
         );
-        $e = \mod_resource\event\course_module_viewed::create($event_params2);
+        $e = \mod_resource\event\course_module_viewed::create($eventparams2);
         $e->trigger();
         $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
 
         $this->setUser($user2);
-        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e = \mod_resource\event\course_module_viewed::create($eventparams);
         $e->trigger();
         $this->assertEquals(3, $DB->count_records('logstore_usage_log'));
-
-
 
     }
 

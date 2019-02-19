@@ -113,11 +113,11 @@ class logstore_usage_privacy_testcase extends provider_testcase {
         $this->setUser($u1);
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
-        // User two (userids)
+        // User two (userids).
         $this->setUser($u2);
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
-        // Nothing should be added, because login-as
+        // Nothing should be added, because login-as.
         $this->setAdminUser();
         \core\session\manager::loginas($u3->id, context_system::instance());
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
@@ -136,7 +136,6 @@ class logstore_usage_privacy_testcase extends provider_testcase {
 
     public function test_delete_data_for_user() {
         global $DB;
-
 
         // Confirm data present.
         $this->assertTrue($DB->record_exists('logstore_usage_log', ['userid' => $u1->id, 'contextid' => $c1ctx->id]));
@@ -219,7 +218,7 @@ class logstore_usage_privacy_testcase extends provider_testcase {
         $this->setUser($u3);
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
-        //Not in course
+        // Not in course.
         $this->setUser($u4);
         $e = \logstore_usage\event\unittest_view::create(['context' => $sysctx]);
         $e->trigger();
@@ -264,7 +263,6 @@ class logstore_usage_privacy_testcase extends provider_testcase {
         $this->setUser($u1);
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
-
 
         // Confirm data present for u1.
         provider::export_user_data(new approved_contextlist($u1, 'logstore_usage', [$c2ctx->id, $c1ctx->id]));
