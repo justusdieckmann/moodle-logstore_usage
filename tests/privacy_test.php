@@ -136,6 +136,33 @@ class logstore_usage_privacy_testcase extends provider_testcase {
 
     public function test_delete_data_for_user() {
         global $DB;
+        $u1 = $this->getDataGenerator()->create_user();
+        $u2 = $this->getDataGenerator()->create_user();
+        $c1 = $this->getDataGenerator()->create_course();
+        $c2 = $this->getDataGenerator()->create_course();
+        $c1ctx = context_course::instance($c1->id);
+        $c2ctx = context_course::instance($c2->id);
+
+        set_config("courses", $c1->id . "," . $c2->id, "logstore_usage");
+
+        $this->enable_logging();
+        $manager = get_log_manager(true);
+
+        // User 1 is the author.
+        $this->setUser($u1);
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
+        $e->trigger();
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
+        $e->trigger();
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c2ctx]);
+        $e->trigger();
+
+        // User 2 is the author.
+        $this->setUser($u2);
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
+        $e->trigger();
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c2ctx]);
+        $e->trigger();
 
         // Confirm data present.
         $this->assertTrue($DB->record_exists('logstore_usage_log', ['userid' => $u1->id, 'contextid' => $c1ctx->id]));
@@ -238,20 +265,11 @@ class logstore_usage_privacy_testcase extends provider_testcase {
     }
 
     public function test_export_data_for_user() {
-        $admin = \core_user::get_user(2);
         $u1 = $this->getDataGenerator()->create_user();
-        $u2 = $this->getDataGenerator()->create_user();
-        $u3 = $this->getDataGenerator()->create_user();
-        $u4 = $this->getDataGenerator()->create_user();
         $c1 = $this->getDataGenerator()->create_course();
-        $cm1 = $this->getDataGenerator()->create_module('url', ['course' => $c1]);
         $c2 = $this->getDataGenerator()->create_course();
-        $cm2 = $this->getDataGenerator()->create_module('url', ['course' => $c2]);
-        $sysctx = context_system::instance();
         $c1ctx = context_course::instance($c1->id);
         $c2ctx = context_course::instance($c2->id);
-        $cm1ctx = context_module::instance($cm1->cmid);
-        $cm2ctx = context_module::instance($cm2->cmid);
 
         set_config("courses", $c1->id . "," . $c2->id, "logstore_usage");
 
