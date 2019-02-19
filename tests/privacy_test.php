@@ -136,34 +136,7 @@ class logstore_usage_privacy_testcase extends provider_testcase {
 
     public function test_delete_data_for_user() {
         global $DB;
-        $u1 = $this->getDataGenerator()->create_user();
-        $u2 = $this->getDataGenerator()->create_user();
-        $c1 = $this->getDataGenerator()->create_course();
-        $c2 = $this->getDataGenerator()->create_course();
-        $sysctx = context_system::instance();
-        $c1ctx = context_course::instance($c1->id);
-        $c2ctx = context_course::instance($c2->id);
 
-        set_config("courses", $c1->id . "," . $c2->id, "logstore_usage");
-
-        $this->enable_logging();
-        $manager = get_log_manager(true);
-
-        // User 1 is the author.
-        $this->setUser($u1);
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
-        $e->trigger();
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
-        $e->trigger();
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c2ctx]);
-        $e->trigger();
-
-        // User 2 is the author.
-        $this->setUser($u2);
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
-        $e->trigger();
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c2ctx]);
-        $e->trigger();
 
         // Confirm data present.
         $this->assertTrue($DB->record_exists('logstore_usage_log', ['userid' => $u1->id, 'contextid' => $c1ctx->id]));
@@ -180,25 +153,25 @@ class logstore_usage_privacy_testcase extends provider_testcase {
     public function test_delete_data_for_all_users_in_context() {
         global $DB;
         $u1 = $this->getDataGenerator()->create_user();
-        $u2 = $this->getDataGenerator()->create_user();
         $c1 = $this->getDataGenerator()->create_course();
-        $c2 = $this->getDataGenerator()->create_course();
-        $sysctx = context_system::instance();
         $c1ctx = context_course::instance($c1->id);
+        $u2 = $this->getDataGenerator()->create_user();
+        $c2 = $this->getDataGenerator()->create_course();
         $c2ctx = context_course::instance($c2->id);
-
-        set_config("courses", $c1->id . "," . $c2->id, "logstore_usage");
+        $sysctx = context_system::instance();
 
         $this->enable_logging();
         $manager = get_log_manager(true);
+
+        set_config("courses", $c1->id . "," . $c2->id, "logstore_usage");
 
         // User 1 is the author.
         $this->setUser($u1);
         $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
-        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
-        $e->trigger();
         $e = \logstore_usage\event\unittest_view::create(['context' => $c2ctx]);
+        $e->trigger();
+        $e = \logstore_usage\event\unittest_view::create(['context' => $c1ctx]);
         $e->trigger();
 
         // User 2 is the author.
