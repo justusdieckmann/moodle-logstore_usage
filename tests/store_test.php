@@ -27,6 +27,11 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/fixtures/event.php');
 require_once(__DIR__ . '/fixtures/restore_hack.php');
 
+/**
+ * Class logstore_usage_store_testcase
+ *
+ * @group logstore_usage
+ */
 class logstore_usage_store_testcase extends advanced_testcase {
     /**
      * @var bool Determine if we disabled the GC, so it can be re-enabled in tearDown.
@@ -46,26 +51,12 @@ class logstore_usage_store_testcase extends advanced_testcase {
         $course2 = $this->getDataGenerator()->create_course();
         $module2 = $this->getDataGenerator()->create_module('resource', array('course' => $course2));
 
-        // Test all plugins are disabled by this command.
-        set_config('enabled_stores', '', 'tool_log');
-        $manager = get_log_manager(true);
-        $stores = $manager->get_readers();
-        $this->assertCount(0, $stores);
-
         // Enable logging plugin.
         set_config('enabled_stores', 'logstore_usage', 'tool_log');
         set_config('buffersize', 0, 'logstore_usage');
         set_config('logguests', 1, 'logstore_usage');
+        set_config('courses', $course1->id . "," . $course2->id, "logstore_usage");
         $manager = get_log_manager(true);
-
-        $stores = $manager->get_readers();
-        $this->assertCount(1, $stores);
-        $this->assertEquals(array('logstore_usage'), array_keys($stores));
-        /** @var \logstore_usage\log\store $store */
-        $store = $stores['logstore_usage'];
-        $this->assertInstanceOf('logstore_usage\log\store', $store);
-        $this->assertInstanceOf('tool_log\log\writer', $store);
-        $this->assertTrue($store->is_logging());
 
         $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
         $this->assertCount(0, $logs);
@@ -73,155 +64,61 @@ class logstore_usage_store_testcase extends advanced_testcase {
         $this->setCurrentTimeStart();
 
         $this->setUser(0);
-        $event1 = \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)));
-        $event1->trigger();
 
+        $event_params = array(
+                'context' => context_module::instance($module1->cmid),
+                'objectid' => $module1->id
+        );
+        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e->trigger();
+        $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
+
+        $this->setUser($user1);
+        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e->trigger();
         $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
         $this->assertCount(1, $logs);
 
         $log1 = reset($logs);
         unset($log1->id);
-        $log1->other = unserialize($log1->other);
-        $log1 = (array)$log1;
-        $data = $event1->get_data();
-        $data['origin'] = 'cli';
-        $data['ip'] = null;
-        $data['realuserid'] = null;
-        $this->assertEquals($data, $log1);
-
-        $this->setAdminUser();
-        \core\session\manager::loginas($user1->id, context_system::instance());
-        $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
-
-        logstore_usage_restore::hack_executing(1);
-        $event2 = \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module2->cmid), 'other' => array('sample' => 6, 'xx' => 9)));
-        $event2->trigger();
-        logstore_usage_restore::hack_executing(0);
-
-        \core\session\manager::init_empty_session();
-        $this->assertFalse(\core\session\manager::is_loggedinas());
-
-        $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
-        $this->assertCount(3, $logs);
-        array_shift($logs);
-        $log2 = array_shift($logs);
-        $this->assertSame('\core\event\user_loggedinas', $log2->eventname);
-        $this->assertSame('cli', $log2->origin);
-
-        $log3 = array_shift($logs);
-        unset($log3->id);
-        $log3->other = unserialize($log3->other);
-        $log3 = (array)$log3;
-        $data = $event2->get_data();
-        $data['origin'] = 'restore';
-        $data['ip'] = null;
-        $data['realuserid'] = 2;
-        $this->assertEquals($data, $log3);
-
-        // Test table exists.
-        $tablename = $store->get_internal_log_table_name();
-        $this->assertTrue($DB->get_manager()->table_exists($tablename));
-
-        // Test reading.
-        $this->assertSame(3, $store->get_events_select_count('', array()));
-        $events = $store->get_events_select('', array(), 'timecreated ASC', 0, 0); // Is actually sorted by "timecreated ASC, id ASC".
-        $this->assertCount(3, $events);
-        $resev1 = array_shift($events);
-        array_shift($events);
-        $resev2 = array_shift($events);
-        $this->assertEquals($event1->get_data(), $resev1->get_data());
-        $this->assertEquals($event2->get_data(), $resev2->get_data());
-
-        // Test buffering.
-        set_config('buffersize', 3, 'logstore_usage');
-        $manager = get_log_manager(true);
-        $stores = $manager->get_readers();
-        /** @var \logstore_usage\log\store $store */
-        $store = $stores['logstore_usage'];
-        $DB->delete_records('logstore_usage_log');
-
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
-        $store->flush();
-        $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(5, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(5, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(5, $DB->count_records('logstore_usage_log'));
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(8, $DB->count_records('logstore_usage_log'));
-
-        // Test guest logging setting.
-        set_config('logguests', 0, 'logstore_usage');
-        set_config('buffersize', 0, 'logstore_usage');
-        get_log_manager(true);
-        $DB->delete_records('logstore_usage_log');
-        get_log_manager(true);
-
-        $this->setUser(null);
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
-
-        $this->setGuestUser();
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(0, $DB->count_records('logstore_usage_log'));
+        $expected = array(
+                'objecttable' => $e->objecttable,
+                'objectid' => $e->objectid,
+                'contextid' => $e->contextid,
+                'userid' => $e->userid,
+                'courseid' => $e->courseid,
+                'amount' => '1',
+                'daycreated' => date('j', $e->timecreated),
+                'monthcreated' => date('n', $e->timecreated),
+                'yearcreated' => date('Y', $e->timecreated),
+        );
+        $this->assertEquals($expected, (array) $log1);
 
         $this->setUser($user1);
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
-        $this->assertEquals(1, $DB->count_records('logstore_usage_log'));
+        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e->trigger();
+        $logs = $DB->get_records('logstore_usage_log', array(), 'id ASC');
+        $this->assertCount(1, $logs);
+        $log1 = reset($logs);
+        unset($log1->id);
+        $expected['amount'] = '2';
+        $this->assertEquals($expected, (array) $log1);
 
-        $this->setUser($user2);
-        \logstore_usage\event\unittest_executed::create(
-            array('context' => context_module::instance($module1->cmid), 'other' => array('sample' => 5, 'xx' => 10)))->trigger();
+        $event_params2 = array(
+                'context' => context_module::instance($module2->cmid),
+                'objectid' => $module2->id
+        );
+        $e = \mod_resource\event\course_module_viewed::create($event_params2);
+        $e->trigger();
         $this->assertEquals(2, $DB->count_records('logstore_usage_log'));
 
-        set_config('enabled_stores', '', 'tool_log');
-        get_log_manager(true);
-    }
+        $this->setUser($user2);
+        $e = \mod_resource\event\course_module_viewed::create($event_params);
+        $e->trigger();
+        $this->assertEquals(3, $DB->count_records('logstore_usage_log'));
 
-    /**
-     * Test logmanager::get_supported_reports returns all reports that require this store.
-     */
-    public function test_get_supported_reports() {
-        $logmanager = get_log_manager();
-        $allreports = \core_component::get_plugin_list('report');
 
-        $supportedreports = array(
-            'report_log' => '/report/log',
-            'report_loglive' => '/report/loglive',
-            'report_outline' => '/report/outline',
-            'report_participation' => '/report/participation',
-            'report_stats' => '/report/stats'
-        );
 
-        // Make sure all supported reports are installed.
-        $expectedreports = array_keys(array_intersect_key($allreports, $supportedreports));
-        $reports = $logmanager->get_supported_reports('logstore_usage');
-        $reports = array_keys($reports);
-        foreach ($expectedreports as $expectedreport) {
-            $this->assertContains($expectedreport, $reports);
-        }
     }
 
     /**
@@ -235,101 +132,6 @@ class logstore_usage_store_testcase extends advanced_testcase {
         $this->disable_gc();
         $this->assertTrue($this->wedisabledgc);
         $this->assertFalse(gc_enabled());
-    }
-
-    /**
-     * Test sql_reader::get_events_select_iterator.
-     * @return void
-     */
-    public function test_events_traversable() {
-        global $DB;
-
-        $this->disable_gc();
-
-        $this->resetAfterTest();
-        $this->preventResetByRollback();
-        $this->setAdminUser();
-
-        set_config('enabled_stores', 'logstore_usage', 'tool_log');
-
-        $manager = get_log_manager(true);
-        $stores = $manager->get_readers();
-        $store = $stores['logstore_usage'];
-
-        $events = $store->get_events_select_iterator('', array(), '', 0, 0);
-        $this->assertFalse($events->valid());
-
-        // Here it should be already closed, but we should be allowed to
-        // over-close it without exception.
-        $events->close();
-
-        $user = $this->getDataGenerator()->create_user();
-        for ($i = 0; $i < 1000; $i++) {
-            \core\event\user_created::create_from_userid($user->id)->trigger();
-        }
-        $store->flush();
-
-        // Check some various sizes get the right number of elements.
-        $this->assertEquals(1, iterator_count($store->get_events_select_iterator('', array(), '', 0, 1)));
-        $this->assertEquals(2, iterator_count($store->get_events_select_iterator('', array(), '', 0, 2)));
-
-        $iterator = $store->get_events_select_iterator('', array(), '', 0, 500);
-        $this->assertInstanceOf('\core\event\base', $iterator->current());
-        $this->assertEquals(500, iterator_count($iterator));
-        $iterator->close();
-
-        // Look for non-linear memory usage for the iterator version.
-        $mem = memory_get_usage();
-        $events = $store->get_events_select('', array(), '', 0, 0);
-        $arraymemusage = memory_get_usage() - $mem;
-
-        $mem = memory_get_usage();
-        $eventsit = $store->get_events_select_iterator('', array(), '', 0, 0);
-        $eventsit->close();
-        $itmemusage = memory_get_usage() - $mem;
-
-        $this->assertInstanceOf('\Traversable', $eventsit);
-
-        $this->assertLessThan($arraymemusage / 10, $itmemusage);
-        set_config('enabled_stores', '', 'tool_log');
-        get_log_manager(true);
-    }
-
-    /**
-     * Test that the standard log cleanup works correctly.
-     */
-    public function test_cleanup_task() {
-        global $DB;
-
-        $this->resetAfterTest();
-
-        // Create some records spread over various days; test multiple iterations in cleanup.
-        $ctx = context_course::instance(1);
-        $record = (object) array(
-            'edulevel' => 0,
-            'contextid' => $ctx->id,
-            'contextlevel' => $ctx->contextlevel,
-            'contextinstanceid' => $ctx->instanceid,
-            'userid' => 1,
-            'timecreated' => time(),
-        );
-        $DB->insert_record('logstore_usage_log', $record);
-        $record->timecreated -= 3600 * 24 * 30;
-        $DB->insert_record('logstore_usage_log', $record);
-        $record->timecreated -= 3600 * 24 * 30;
-        $DB->insert_record('logstore_usage_log', $record);
-        $record->timecreated -= 3600 * 24 * 30;
-        $DB->insert_record('logstore_usage_log', $record);
-        $this->assertEquals(4, $DB->count_records('logstore_usage_log'));
-
-        // Remove all logs before "today".
-        set_config('loglifetime', 1, 'logstore_usage');
-
-        $this->expectOutputString(" Deleted old log records from standard store.\n");
-        $clean = new \logstore_usage\task\cleanup_task();
-        $clean->execute();
-
-        $this->assertEquals(1, $DB->count_records('logstore_usage_log'));
     }
 
     /**

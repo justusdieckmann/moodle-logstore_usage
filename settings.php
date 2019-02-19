@@ -26,10 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
 
-    $settings->add(new admin_setting_configcheckbox('logstore_usage/logguests',
-            new lang_string('logguests', 'core_admin'),
-            new lang_string('logguests_help', 'core_admin'), 1));
-
     $options = array(
             0 => new lang_string('neverdeletelogs'),
             1000 => new lang_string('numdays', '', 1000),

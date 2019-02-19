@@ -33,13 +33,9 @@ class store implements \tool_log\log\writer {
             \tool_log\helper\buffered_writer,
             \tool_log\helper\reader;
 
-    /** @var string $logguests true if logging guest access */
-    protected $logguests;
-
     public function __construct(\tool_log\log\manager $manager) {
         $this->helper_setup($manager);
         // Log everything before setting is saved for the first time.
-        $this->logguests = $this->get_config('logguests', 1);
     }
 
     /**
@@ -49,7 +45,7 @@ class store implements \tool_log\log\writer {
      * @return bool
      */
     protected function is_event_ignored(\core\event\base $event) {
-        if ((!CLI_SCRIPT or PHPUNIT_TEST) and !$this->logguests) {
+        if ((!CLI_SCRIPT or PHPUNIT_TEST)) {
             // Always log inside CLI scripts because we do not login there.
             if (!isloggedin() or isguestuser()) {
                 return true;
@@ -75,6 +71,10 @@ class store implements \tool_log\log\writer {
             return true;
         }
 
+        if(PHPUNIT_TEST && $eventname == '\logstore_usage\event\unittest_view') {
+            return true;
+        }
+
         return false;
     }
 
@@ -92,6 +92,11 @@ class store implements \tool_log\log\writer {
         global $DB;
 
         foreach ($evententries as $k => $v) {
+            //realuserid is not present in is_event_ignored
+            if (isset($v['realuserid']) && $v['realuserid'] !== '') {
+                continue;
+            }
+
             $dt = new \DateTime("now", \core_date::get_server_timezone_object());
             $day = $dt->format('j');
             $month = $dt->format('n');
