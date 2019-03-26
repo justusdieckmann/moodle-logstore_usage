@@ -2,7 +2,7 @@ moodle-logstore_usage
 ============================
 [![Build Status](https://travis-ci.org/learnweb/moodle-logstore_usage.svg?branch=master)](https://travis-ci.org/learnweb/moodle-logstore_usage)
 
-A plugin for logging all views of activites in specified courses seperately.
+A plugin for logging the amount views of activites in specified courses per day, activity and user.
 
 You can view the data by installing the seperate report_usage plugin from https://github.com/learnweb/moodle-report_usage.
 
