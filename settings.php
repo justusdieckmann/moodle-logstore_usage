@@ -47,7 +47,9 @@ if ($hassiteconfig) {
             get_string('buffersize', 'logstore_usage'),
             '', '50', PARAM_INT));
 
-    $settings->add(new admin_setting_configtext('logstore_usage/courses', get_string('enabledcourses', 'logstore_usage'), get_string('enabledcourses', 'logstore_usage'), '',
+    $settings->add(new admin_setting_configtext('logstore_usage/courses',
+        get_string('enabledcourses', 'logstore_usage'),
+        get_string('enabledcourses', 'logstore_usage'), '',
             PARAM_SEQUENCE));
 
 }

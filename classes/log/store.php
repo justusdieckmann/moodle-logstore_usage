@@ -54,6 +54,8 @@ class store implements \tool_log\log\writer {
 
         $data = $event->get_data();
 
+        $this->invalidate_cache_if_necessary($data);
+
         if (!(isset($data['courseid']) && $this->is_course_activated($data['courseid']))) {
             return true;
         }
@@ -67,7 +69,8 @@ class store implements \tool_log\log\writer {
     }
 
     protected function should_listen_for_event($eventname) {
-        if (preg_match('/\\\\event\\\\course_module_viewed$/', $eventname)) {
+        $end = '\event\course_module_viewed';
+        if (substr_compare($eventname, $end, strlen($eventname) - strlen($end), strlen($end)) === 0) {
             return true;
         }
 
@@ -79,7 +82,12 @@ class store implements \tool_log\log\writer {
     }
 
     protected function is_course_activated($courseid) {
-        $courses = explode(',', $this->get_config('courses'));
+        $cache = \cache::make('logstore_usage', 'courses');
+        $courses = $cache->get('courses');
+        if ($courses === false) {
+            $courses = explode(',', $this->get_config('courses'));
+            $cache->set('courses', $courses);
+        }
         return in_array($courseid, $courses);
     }
 
@@ -221,6 +229,20 @@ class store implements \tool_log\log\writer {
 
     public function get_internal_log_table_name() {
         return 'logstore_usage_log';
+    }
+
+    /**
+     * Invalidates Cache if eventdata is of an event changing the logstore_usage/courses setting
+     *
+     * @param array $data eventdata
+     */
+    private function invalidate_cache_if_necessary(array $data) {
+        if ($data['eventname'] == '\\core\\event\\config_log_created') {
+            if($data['other']['plugin'] == "logstore_usage" && $data['other']['name'] == 'courses') {
+                $cache = \cache::make('logstore_usage', 'courses');
+                $cache->delete('courses');
+            }
+        }
     }
 
     /**

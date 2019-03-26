@@ -15,15 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Standard log store.
+ * Cache definition for logstore_usage
  *
  * @package    logstore_usage
- * @copyright  2013 Petr Skoda {@link http://skodak.org}
+ * @copyright  2019 Justus Dieckmann
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2019032600; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires = 2018112800; // Requires this Moodle version.
-$plugin->component = 'logstore_usage'; // Full name of the plugin (used for diagnostics).
+$definitions = array(
+    'courses' => array(
+        'mode' => cache_store::MODE_APPLICATION
+    ),
+);
