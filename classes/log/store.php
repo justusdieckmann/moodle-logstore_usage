@@ -96,8 +96,9 @@ class store implements \tool_log\log\writer {
             if (isset($v['realuserid']) && $v['realuserid'] !== '') {
                 continue;
             }
-
-            $dt = new \DateTime("now", \core_date::get_server_timezone_object());
+            $timestamp = $v['timecreated'];
+            $dt = new \DateTime("@$timestamp");
+            $dt->setTimezone(\core_date::get_server_timezone_object());
             $day = $dt->format('j');
             $month = $dt->format('n');
             $year = $dt->format('Y');
