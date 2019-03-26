@@ -18,7 +18,7 @@
  * Standard log reader/writer.
  *
  * @package    logstore_usage
- * @copyright  2013 Petr Skoda {@link http://skodak.org}
+ * @copyright  2019 Justus Dieckmann
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

@@ -18,7 +18,7 @@
  * Standard log store upgrade.
  *
  * @package    logstore_usage
- * @copyright  2014 Petr Skoda
+ * @copyright  2019 Justus Dieckmann
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
