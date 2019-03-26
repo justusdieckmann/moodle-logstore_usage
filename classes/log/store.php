@@ -54,8 +54,6 @@ class store implements \tool_log\log\writer {
 
         $data = $event->get_data();
 
-        $this->invalidate_cache_if_necessary($data);
-
         if (!(isset($data['courseid']) && $this->is_course_activated($data['courseid']))) {
             return true;
         }
@@ -229,20 +227,6 @@ class store implements \tool_log\log\writer {
 
     public function get_internal_log_table_name() {
         return 'logstore_usage_log';
-    }
-
-    /**
-     * Invalidates Cache if eventdata is of an event changing the logstore_usage/courses setting
-     *
-     * @param array $data eventdata
-     */
-    private function invalidate_cache_if_necessary(array $data) {
-        if ($data['eventname'] == '\\core\\event\\config_log_created') {
-            if($data['other']['plugin'] == "logstore_usage" && $data['other']['name'] == 'courses') {
-                $cache = \cache::make('logstore_usage', 'courses');
-                $cache->delete('courses');
-            }
-        }
     }
 
     /**
