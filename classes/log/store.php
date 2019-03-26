@@ -116,13 +116,13 @@ class store implements \tool_log\log\writer {
                 if ($DB->record_exists("logstore_usage_log", $conditions)) {
                     $sql = "UPDATE {logstore_usage_log}
                            SET amount = amount + 1
-                         WHERE daycreated = ?
-                           AND monthcreated = ?
-                           AND yearcreated = ?
-                           AND userid = ?
-                           AND contextid = ?";
+                         WHERE daycreated = :daycreated
+                           AND monthcreated = :monthcreated
+                           AND yearcreated = :yearcreated
+                           AND userid = :userid
+                           AND contextid = :contextid";
 
-                    $DB->execute($sql, array($day, $month, $year, $v['userid'], $v['contextid']));
+                    $DB->execute($sql, $conditions);
                 } else {
                     $obj = array(
                             'objecttable' => $v['objecttable'],
