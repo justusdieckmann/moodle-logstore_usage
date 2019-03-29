@@ -56,14 +56,17 @@ class cleanup_task extends \core\task\scheduled_task {
         $lifetimep = array($minloglifetime);
         $start = time();
 
-        while ($min = $DB->get_field_select("logstore_usage_log", "MIN(yearcreated * 10000 + monthcreated * 100 + daycreated)", "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $lifetimep)) {
+        while ($min = $DB->get_field_select("logstore_usage_log",
+            "MIN(yearcreated * 10000 + monthcreated * 100 + daycreated)",
+            "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $lifetimep)) {
             // Break this down into chunks to avoid transaction for too long and generally thrashing database.
             // Experiments suggest deleting one day takes up to a few seconds; probably a reasonable chunk size usually.
             // If the cleanup has just been enabled, it might take e.g a month to clean the years of logs.
             $mindt = \DateTime::createFromFormat("Ymd", $min);
             $mindt->add(new \DateInterval('P1D'));
             $params = array(min($mindt->format("Ymd"), $minloglifetime));
-            $DB->delete_records_select("logstore_usage_log", "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $params);
+            $DB->delete_records_select("logstore_usage_log",
+                "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $params);
             if (time() > $start + 300) {
                 // Do not churn on log deletion for too long each run.
                 break;
