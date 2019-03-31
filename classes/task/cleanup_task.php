@@ -24,9 +24,14 @@
 
 namespace logstore_usage\task;
 
+use core\task\scheduled_task;
+use core_date;
+use DateInterval;
+use DateTime;
+
 defined('MOODLE_INTERNAL') || die();
 
-class cleanup_task extends \core\task\scheduled_task {
+class cleanup_task extends scheduled_task {
 
     /**
      * Get a descriptive name for this task (shown to admins).
@@ -50,7 +55,7 @@ class cleanup_task extends \core\task\scheduled_task {
             return;
         }
 
-        $minloglifetimedt = new \DateTime();
+        $minloglifetimedt = new DateTime('now', core_date::get_server_timezone_object());
         $minloglifetimedt->setTimestamp(time() - ($loglifetime * 3600 * 24));
         $minloglifetime = (int) $minloglifetimedt->format("Ymd");
         $lifetimep = array($minloglifetime);
@@ -62,8 +67,8 @@ class cleanup_task extends \core\task\scheduled_task {
             // Break this down into chunks to avoid transaction for too long and generally thrashing database.
             // Experiments suggest deleting one day takes up to a few seconds; probably a reasonable chunk size usually.
             // If the cleanup has just been enabled, it might take e.g a month to clean the years of logs.
-            $mindt = \DateTime::createFromFormat("Ymd", $min);
-            $mindt->add(new \DateInterval('P1D'));
+            $mindt = DateTime::createFromFormat("Ymd", $min, core_date::get_server_timezone_object());
+            $mindt->add(new DateInterval('P1D'));
             $params = array(min($mindt->format("Ymd"), $minloglifetime));
             $DB->delete_records_select("logstore_usage_log",
                 "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $params);
