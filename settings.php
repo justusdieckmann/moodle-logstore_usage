@@ -51,7 +51,7 @@ if ($hassiteconfig) {
         get_string('enabledcourses', 'logstore_usage'),
         get_string('enabledcourses_desc', 'logstore_usage'), '',
         PARAM_SEQUENCE);
-    $setting->set_updatedcallback("\logstore_usage\cache_util::reset_courses_cache");
+    $setting->set_updatedcallback("\\logstore_usage\\cache_util::reset_courses_cache");
     $settings->add($setting);
 
 }
