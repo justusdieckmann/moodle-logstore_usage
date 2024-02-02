@@ -37,3 +37,8 @@ $string['taskcleanup'] = 'Log table cleanup';
 $string['enabledcourses'] = 'Enabled courses';
 $string['enabledcourses_desc'] = 'List of enabled course-ids, seperated by comma';
 $string['cachedef_courses'] = 'A cached array representation of the comma seperated list of courses';
+
+$string['until'] = 'Until';
+$string['editentry'] = 'Edit logstore entry';
+$string['manageentries'] = 'Manage logstore entries';
+$string['tools'] = 'Tools';

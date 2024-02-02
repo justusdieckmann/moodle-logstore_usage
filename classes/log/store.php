@@ -25,6 +25,7 @@
 namespace logstore_usage\log;
 
 use Box\Spout\Common\Exception\EncodingConversionException;
+use logstore_usage\cache_util;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -80,13 +81,7 @@ class store implements \tool_log\log\writer {
     }
 
     protected function is_course_activated($courseid) {
-        $cache = \cache::make('logstore_usage', 'courses');
-        $courses = $cache->get('courses');
-        if ($courses === false) {
-            $courses = explode(',', $this->get_config('courses'));
-            $cache->set('courses', $courses);
-        }
-        return in_array($courseid, $courses);
+        return cache_util::has_course($courseid);
     }
 
     /**

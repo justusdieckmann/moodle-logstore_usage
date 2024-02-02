@@ -15,15 +15,37 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Standard log store.
+ * Persistent course entry.
  *
  * @package    logstore_usage
- * @copyright  2019 Justus Dieckmann
+ * @copyright  2024 Justus Dieckmann, University of Münster
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace logstore_usage;
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2024020200; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires = 2018112800; // Requires this Moodle version.
-$plugin->component = 'logstore_usage'; // Full name of the plugin (used for diagnostics).
+class course_entry_form extends \core\form\persistent {
+
+    protected static $persistentclass = '\logstore_usage\course_entry';
+
+    protected function definition() {
+        $mform = $this->_form;
+
+        $mform->addElement('course', 'courseid', get_string('course'));
+        $mform->addRule('courseid', null, 'required');
+
+        $mform->addElement('date_selector', 'timeuntil', get_string('until', 'logstore_usage'), ['optional' => true]);
+
+        $this->add_action_buttons();
+    }
+
+    public function get_data() {
+        $data = parent::get_data();
+        if ($data && (!isset($data->timeuntil) || !$data->timeuntil)) {
+            $data->timeuntil = null;
+        }
+        return $data;
+    }
+}

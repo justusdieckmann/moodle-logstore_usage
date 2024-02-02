@@ -25,6 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
+    global $ADMIN, $settings;
+
+    $settings = new admin_category('logsettingusage', new lang_string('pluginname', 'logstore_usage'));
+    $ADMIN->add('logging', $settings);
+    $settingspage = new admin_settingpage('logsettingusage-settings', new lang_string('settings'));
 
     $options = array(
             0 => new lang_string('neverdeletelogs'),
@@ -39,19 +44,17 @@ if ($hassiteconfig) {
             10 => new lang_string('numdays', '', 10),
             5 => new lang_string('numdays', '', 5),
             2 => new lang_string('numdays', '', 2));
-    $settings->add(new admin_setting_configselect('logstore_usage/loglifetime',
+    $settingspage->add(new admin_setting_configselect('logstore_usage/loglifetime',
             new lang_string('loglifetime', 'core_admin'),
             new lang_string('configloglifetime', 'core_admin'), 0, $options));
 
-    $settings->add(new admin_setting_configtext('logstore_usage/buffersize',
+    $settingspage->add(new admin_setting_configtext('logstore_usage/buffersize',
             get_string('buffersize', 'logstore_usage'),
             '', '50', PARAM_INT));
 
-    $setting = new admin_setting_configtext('logstore_usage/courses',
-        get_string('enabledcourses', 'logstore_usage'),
-        get_string('enabledcourses_desc', 'logstore_usage'), '',
-        PARAM_SEQUENCE);
-    $setting->set_updatedcallback("\\logstore_usage\\cache_util::reset_courses_cache");
-    $settings->add($setting);
+    $ADMIN->add('logsettingusage', $settingspage);
+    $ADMIN->add('logsettingusage', new admin_externalpage('logsettingusage-edit', 'Edit enabled courses',
+            new moodle_url('/admin/tool/log/store/usage/manageentries.php')));
 
+    $settings = null;
 }
