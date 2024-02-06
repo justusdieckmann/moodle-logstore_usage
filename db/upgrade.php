@@ -25,19 +25,48 @@
 defined('MOODLE_INTERNAL') || die();
 
 function xmldb_logstore_usage_upgrade($oldversion) {
-    global $CFG;
+    global $CFG, $DB;
 
-    // Automatically generated Moodle v3.3.0 release upgrade line.
-    // Put any upgrade step following this.
+    $dbman = $DB->get_manager();
 
-    // Automatically generated Moodle v3.4.0 release upgrade line.
-    // Put any upgrade step following this.
+    if ($oldversion < 2024020200) {
 
-    // Automatically generated Moodle v3.5.0 release upgrade line.
-    // Put any upgrade step following this.
+        // Define table logstore_usage_courses to be created.
+        $table = new xmldb_table('logstore_usage_courses');
 
-    // Automatically generated Moodle v3.6.0 release upgrade line.
-    // Put any upgrade step following this.
+        // Adding fields to table logstore_usage_courses.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timeuntil', XMLDB_TYPE_INTEGER, '11', null, null, null, null);
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table logstore_usage_courses.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('courseid_frk', XMLDB_KEY_FOREIGN_UNIQUE, ['courseid'], 'course', ['id']);
+        $table->add_key('usermodified', XMLDB_KEY_FOREIGN, ['usermodified'], 'user', ['id']);
+
+        // Conditionally launch create table for logstore_usage_courses.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $prevcourseids = explode(',', get_config('logstore_usage', 'courses'));
+        list($sql, $params) = $DB->get_in_or_equal($prevcourseids);
+        $courseids = $DB->get_fieldset_select('course', 'id', "id $sql", $params);
+        foreach ($courseids as $courseid) {
+            $entry = new \logstore_usage\course_entry();
+            $entry->set('courseid', $courseid);
+            $entry->save();
+        }
+
+        unset_config('courses', 'logstore_usage');
+
+        // Usage savepoint reached.
+        upgrade_plugin_savepoint(true, 2024020200, 'logstore', 'usage');
+    }
+
 
     return true;
 }

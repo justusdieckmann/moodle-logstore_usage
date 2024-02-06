@@ -15,15 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Standard log store.
+ * Lib.php for logstore_usage
  *
  * @package    logstore_usage
- * @copyright  2019 Justus Dieckmann
+ * @copyright  2024 Justus Dieckmann, University of MÜnster.
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2024020300; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires = 2018112800; // Requires this Moodle version.
-$plugin->component = 'logstore_usage'; // Full name of the plugin (used for diagnostics).
+/**
+ * Pre-delete course hook to cleanup any records with references to the deleted course.
+ *
+ * @param stdClass $course The deleted course
+ */
+function logstore_usage_pre_course_delete(stdClass $course) {
+    global $DB;
+
+    $DB->delete_records('logstore_usage_courses', ['courseid' => $course->id]);
+}

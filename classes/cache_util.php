@@ -28,9 +28,34 @@ defined('MOODLE_INTERNAL') || die();
 
 class cache_util {
 
-    public static function reset_courses_cache() {
-        $cache = \cache::make('logstore_usage', 'courses');
+    private static function get_cache() : \cache {
+        return \cache::make('logstore_usage', 'courses');
+    }
+
+    public static function reset_courses_cache() : void {
+        $cache = self::get_cache();
         $cache->delete('courses');
+    }
+
+    public static function has_course($courseid) : bool {
+        return in_array($courseid, self::get_courses());
+    }
+
+    public static function build_courses() : array {
+        global $DB;
+        return $DB->get_fieldset_select('logstore_usage_courses', 'courseid',
+                'timeuntil IS NULL OR timeuntil > :time', ['time' => time()]);
+    }
+
+    public static function get_courses() : array {
+        $cache = self::get_cache();
+        $courses = $cache->get('courses');
+        if ($courses === false || $cache->get('until') < time()) {
+            $courses = self::build_courses();
+            $cache->set('courses', $courses);
+            $cache->set('until', time() + 24 * 60 * 60);
+        }
+        return $courses;
     }
 
 }
