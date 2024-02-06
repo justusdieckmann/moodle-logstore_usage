@@ -47,6 +47,18 @@ class cleanup_task extends scheduled_task {
      * Throw exceptions on errors (the job will be retried).
      */
     public function execute() {
+        $this->delete_old_course_entries();
+
+        $this->delete_old_logs();
+    }
+
+    private function delete_old_course_entries() {
+        global $DB;
+        $DB->delete_records_select('logstore_usage_course', 'timeuntil > :time', ['time' => time()]);
+    }
+
+
+    private function delete_old_logs() {
         global $DB;
 
         $loglifetime = (int)get_config('logstore_usage', 'loglifetime');
@@ -62,8 +74,8 @@ class cleanup_task extends scheduled_task {
         $start = time();
 
         while ($min = $DB->get_field_select("logstore_usage_log",
-            "MIN(yearcreated * 10000 + monthcreated * 100 + daycreated)",
-            "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $lifetimep)) {
+                "MIN(yearcreated * 10000 + monthcreated * 100 + daycreated)",
+                "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $lifetimep)) {
             // Break this down into chunks to avoid transaction for too long and generally thrashing database.
             // Experiments suggest deleting one day takes up to a few seconds; probably a reasonable chunk size usually.
             // If the cleanup has just been enabled, it might take e.g a month to clean the years of logs.
@@ -71,7 +83,7 @@ class cleanup_task extends scheduled_task {
             $mindt->add(new DateInterval('P1D'));
             $params = array(min($mindt->format("Ymd"), $minloglifetime));
             $DB->delete_records_select("logstore_usage_log",
-                "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $params);
+                    "yearcreated * 10000 + monthcreated * 100 + daycreated < ?", $params);
             if (time() > $start + 300) {
                 // Do not churn on log deletion for too long each run.
                 break;

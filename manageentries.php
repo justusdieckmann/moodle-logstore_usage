@@ -42,6 +42,7 @@ if ($action) {
     if ($action == 'delete') {
         $id = required_param('id', PARAM_INT);
         $DB->delete_records('logstore_usage_courses', ['id' => $id]);
+        \logstore_usage\cache_util::reset_courses_cache();
     }
     redirect($PAGE->url);
 }
@@ -49,5 +50,9 @@ if ($action) {
 $table = new \logstore_usage\course_entry_table();
 
 echo $OUTPUT->header();
+
+echo html_writer::link(new moodle_url('/admin/tool/log/store/usage/editentry.php'),
+        get_string('newentry', 'logstore_usage'), ['class' => 'btn btn-primary mb-3']);
+
 $table->out(48, false);
 echo $OUTPUT->footer();

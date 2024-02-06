@@ -42,3 +42,4 @@ $string['until'] = 'Until';
 $string['editentry'] = 'Edit logstore entry';
 $string['manageentries'] = 'Manage logstore entries';
 $string['tools'] = 'Tools';
+$string['newentry'] = 'New entry';

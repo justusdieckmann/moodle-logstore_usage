@@ -65,6 +65,7 @@ if (($data = $form->get_data())) {
             $persistent->from_record($data);
             $persistent->update();
         }
+        \logstore_usage\cache_util::reset_courses_cache();
         \core\notification::success(get_string('changessaved'));
     } catch (Exception $e) {
         \core\notification::error($e->getMessage());
