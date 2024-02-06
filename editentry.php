@@ -44,6 +44,9 @@ $PAGE->set_heading($title);
 $persistent = null;
 if (!empty($id)) {
     $persistent = new \logstore_usage\course_entry($id);
+} else {
+    // Timeuntil defaults to in a year.
+    $persistent = new \logstore_usage\course_entry(0, (object) ['timeuntil' => time() + 365 * 24 * 60 * 60]);
 }
 
 $redirecturl = new moodle_url('/admin/tool/log/store/usage/manageentries.php');

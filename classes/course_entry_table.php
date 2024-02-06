@@ -60,7 +60,7 @@ class course_entry_table extends \table_sql {
     }
 
     public function col_timeuntil($row) {
-        return $row->timeuntil ? userdate($row->timeuntil, get_string('strftimedateshort')) : '-';
+        return $row->timeuntil ? userdate($row->timeuntil, get_string('strftimedate')) : '-';
     }
 
     public function col_tools($row) {
